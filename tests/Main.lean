@@ -32,6 +32,5 @@ def main : IO UInt32 := do
 
   IO.println "=========================================================="
   IO.println "   ALL TEST TIERS (UNIT, COMPONENT, LIVE, E2E) PASSED     "
-  IO.println "   100% Verification Coverage - Zero Axiom Failures       "
   IO.println "=========================================================="
   return 0

@@ -8,6 +8,29 @@ Formal verification and executable computational analysis of butterfly and multi
 
 ---
 
+## 0. Audit status (2026-10-26) — read this first
+
+A line-by-line comparison with the paper PDF found that this repository **compiles but does
+not faithfully formalize the paper**. Sections 1–4 below describe the code as written; this
+section is authoritative on what it proves. Evidence and Lean reproductions:
+`/home/mavasbel/Dev/docs/reference/2026-10-26-02-21-lean4-native-lesson-09-critical-reading.md` (§3, §4, §6, §7).
+
+| Paper | Repository | Finding |
+|---|---|---|
+| Def. 2.6, signed area (1) | `SignedAreaFormula … : Prop := True` (`ButterflyCharacterization/Domain/Abstractions/Loop.lean:34-36`) | empty definition: holds for every loop and every number |
+| Def. 2.7, butterfly operator: ∃ loop of Φ with A = 0 | `IsButterflyLoop loop net_signed_area` | the area is a free argument; adds a multiloop condition the paper does not have; no operator Φ |
+| Lemma 3.1, counterclockwise relay **α > β**, strict switching, A = 2(α − β) iff u_min < β ∧ u_max > α | `relaySignedArea` (`Domain/Model/LoopArea.lean:22-35`) | reversed convention (α < β), non-strict tests; the area is defined by the case formula, so the "lemma" restates the definition |
+| Thm. 3.3, Preisach operator with two-sided μ and moment conditions (5)–(6) is a butterfly operator | `theorem3_3_butterfly_zero_area_iff` (`Domain/Model/Butterfly.lean:43`) | an identity between two real numbers; no Preisach operator, μ, input or loop |
+| Thm. 4.7, condition on μ over Ω_α1 | `theorem4_7_sign_alternation_implies_multiloop` | the intermediate value theorem on an assumed continuous branch difference |
+| Cor. 3.4, Cor. 5.1 | — | not formalized |
+
+A faithful formalization of Lemma 3.1 (paper's convention, area computed from the loop
+trajectory) and of the final analytic step of Theorem 3.3 is in `/home/mavasbel/Dev/docs/reference/2026-10-26-02-27-lean4-native-lesson-10-faithful-formalization.md`, with a table of
+what is and is not proved. Porting it into this repository is the open next step.
+
+The test runner no longer prints "100% Verification Coverage – Zero Axiom Failures":
+nothing measured it.
+
 ## 1. Architectural Design
 
 The codebase strictly adheres to a **Hexagonal Architecture (Ports and Adapters)** following SOLID principles:
@@ -88,7 +111,7 @@ The codebase strictly adheres to a **Hexagonal Architecture (Ports and Adapters)
 .
 ├── ButterflyCharacterization.lean             # Master exports
 ├── lakefile.lean                              # Lake build configuration
-├── lean-toolchain                             # Pinned Lean toolchain (v4.16.0)
+├── lean-toolchain                             # Pinned Lean toolchain (leanprover/lean4:v4.35.0)
 ├── ButterflyCharacterization/
 │   ├── Domain/
 │   │   ├── Abstractions/
@@ -177,7 +200,6 @@ Is Butterfly Loop:       false
 [E2E] Multiloop Characterization Synthesis: PASSED
 ==========================================================
    ALL TEST TIERS (UNIT, COMPONENT, LIVE, E2E) PASSED     
-   100% Verification Coverage - Zero Axiom Failures       
 ==========================================================
 ```
 
