@@ -1,70 +1,82 @@
-import Mathlib.Basic.Real.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Topology.Instances.Real.Lemmas
-import Mathlib.Topology.Order.IntermediateValue
-import ButterflyCharacterization.Domain.Abstractions.Loop
-import ButterflyCharacterization.Domain.Model.Crossover
+import ButterflyCharacterization.Domain.Model.Butterfly
+
+/-!
+# Theorem 4.7 (finite form): a multiloop operator
+
+Theorem 4.7 asks for levels `α₁₋ < α₁ < α₁₊` strictly inside the input range such that the
+crossover condition (12) holds at `α₁` and fails at `α₁₋` and `α₁₊`. Then the crossover
+point at `α₁` lies in a maximal connected subset of `H⁺ ∩ H⁻` that stays strictly between
+`α₁₋` and `α₁₊`, so it contains no point with `u_c = u_min` or `u_c = u_max`
+(Definition 4.3). The finite form of (12) is `Σ_{Ω_υ} wᵢ = 0` (Lemma 4.4, finite form).
+-/
+
+open Set Filter Topology
+open ButterflyCharacterization.Domain.Abstractions
 
 namespace ButterflyCharacterization.Domain.Model
 
-noncomputable section
+namespace FinitePreisach
 
-/-!
-# Theorem 4.7: Necessary and Sufficient Multiloop Existence Criterion
-Formalization and proof of Theorem 4.7 from:
-"On the Characterization of Butterfly and Multiloop Hysteresis Behavior"
-(IEEE TAC 2022, DOI: 10.1109/TAC.2021.3109533).
--/
+variable {n : ℕ} {P : FinitePreisach n} {I : SimplePeriodicInput}
 
-/-- Sign alternation condition: The branch difference function D(u) assumes both strictly positive
-    and strictly negative values in the interior (u_min, u_max). -/
-def HasBranchSignAlternation
-    (loop : ButterflyCharacterization.Domain.Abstractions.HysteresisLoop) : Prop :=
-  ∃ (u₁ u₂ : ℝ),
-    loop.extrema.u_min < u₁ ∧ u₁ < u₂ ∧ u₂ < loop.extrema.u_max ∧
-    branchDifference loop u₁ > 0 ∧ branchDifference loop u₂ < 0
+/-- **Theorem 4.7** (finite form). -/
+theorem theorem4_7 (h : P.AllSwitch I) {aLo a₁ aHi : ℝ} (hlo : I.umin < aLo) (hlo₁ : aLo < a₁)
+    (h₁hi : a₁ < aHi) (hhi : aHi < I.umax) (hΩ₁ : ∑ i ∈ P.omega a₁, P.w i = 0)
+    (hΩlo : ∑ i ∈ P.omega aLo, P.w i ≠ 0) (hΩhi : ∑ i ∈ P.omega aHi, P.w i ≠ 0) :
+    IsMultiloopOperator P.output := by
+  set F := I.ascending (P.output I.u) ∩ I.descending (P.output I.u)
+  have hrange : ∀ {a}, I.umin < a → a < I.umax → a ∈ Icc I.umin I.umax :=
+    fun h1 h2 => ⟨h1.le, h2.le⟩
+  have hloop := isHysteresisLoop h (hrange hlo (by linarith)) hΩlo
+  have hp : ((a₁, P.yUp a₁) : ℝ × ℝ) ∈ F :=
+    (lemma4_4 h).mpr ⟨hrange (by linarith) (by linarith), rfl, hΩ₁⟩
+  have hno : ∀ q ∈ F, q.1 ≠ aLo ∧ q.1 ≠ aHi := by
+    rintro ⟨υ, γ⟩ hq
+    have := ((lemma4_4 h).mp hq).2.2
+    exact ⟨fun e => hΩlo (e ▸ this), fun e => hΩhi (e ▸ this)⟩
+  set U : Set (ℝ × ℝ) := {q | q.1 < aLo} ∪ {q | aHi < q.1}
+  set V : Set (ℝ × ℝ) := {q | aLo < q.1 ∧ q.1 < aHi}
+  have hU : IsOpen U := (isOpen_lt continuous_fst continuous_const).union
+    (isOpen_lt continuous_const continuous_fst)
+  have hV : IsOpen V := (isOpen_lt continuous_const continuous_fst).inter
+    (isOpen_lt continuous_fst continuous_const)
+  have hUV : Disjoint U V := by
+    rw [Set.disjoint_left]
+    rintro q (hq | hq) ⟨h1, h2⟩
+    · exact absurd (hq.trans h1) (lt_irrefl _)
+    · exact absurd (h2.trans hq) (lt_irrefl _)
+  have hcover : connectedComponentIn F (a₁, P.yUp a₁) ⊆ U ∪ V := fun q hq => by
+    obtain ⟨h1, h2⟩ := hno q (connectedComponentIn_subset F _ hq)
+    rcases lt_trichotomy q.1 aLo with l | l | l
+    · exact Or.inl (Or.inl l)
+    · exact absurd l h1
+    · rcases lt_trichotomy q.1 aHi with m | m | m
+      · exact Or.inr ⟨l, m⟩
+      · exact absurd m h2
+      · exact Or.inl (Or.inr m)
+  rcases isPreconnected_connectedComponentIn.subset_or_subset hU hV hUV hcover with hsub | hsub
+  · exfalso
+    rcases hsub (mem_connectedComponentIn hp) with h' | h'
+    · exact absurd (h'.trans hlo₁) (lt_irrefl _)
+    · exact absurd (h'.trans h₁hi) (lt_irrefl _)
+  · refine ⟨P.output_hysteresis, I, I.t₁, hloop, _, hp, fun q hq => ?_⟩
+    obtain ⟨h1, h2⟩ := hsub hq
+    exact ⟨by intro e; rw [e] at h1; linarith, by intro e; rw [e] at h2; linarith⟩
 
-/-- Theorem 4.7 (Multiloop Existence via Intermediate Value Property):
-    If the branch difference function D(u) is continuous and exhibits sign alternation
-    in the interior (u_min, u_max), then the loop is guaranteed to be a multiloop
-    (possesses at least one interior crossover point u_c where D(u_c) = 0). -/
-theorem theorem4_7_sign_alternation_implies_multiloop
-    (loop : ButterflyCharacterization.Domain.Abstractions.HysteresisLoop)
-    (h_cont : Continuous (branchDifference loop))
-    (h_alt : HasBranchSignAlternation loop) :
-    ButterflyCharacterization.Domain.Abstractions.IsMultiloop loop := by
-  rcases h_alt with ⟨u₁, u₂, h_min_u₁, h_u₁_u₂, h_u₂_max, h_pos, h_neg⟩
-  have h_le_u₁_u₂ : u₁ ≤ u₂ := le_of_lt h_u₁_u₂
-  have h_subset := intermediate_value_Icc' h_le_u₁_u₂ (Continuous.continuousOn h_cont)
-  have h_zero_mem : (0 : ℝ) ∈ Set.Icc (branchDifference loop u₂) (branchDifference loop u₁) := by
-    rw [Set.mem_Icc]
-    exact ⟨le_of_lt h_neg, le_of_lt h_pos⟩
-  have h_in_image := h_subset h_zero_mem
-  rcases h_in_image with ⟨c, hc_icc, hc_zero⟩
-  rw [Set.mem_Icc] at hc_icc
-  rcases hc_icc with ⟨hc_left, hc_right⟩
-  use c
-  dsimp [ButterflyCharacterization.Domain.Abstractions.IsInteriorCrossoverPoint]
-  have hc_min : loop.extrema.u_min < c := lt_of_lt_of_le h_min_u₁ hc_left
-  have hc_max : c < loop.extrema.u_max := lt_of_le_of_lt hc_right h_u₂_max
-  have hc_eq : loop.y_pos c = loop.y_neg c := by
-    dsimp [branchDifference] at hc_zero
-    linarith
-  exact ⟨hc_min, hc_max, hc_eq⟩
+end FinitePreisach
 
-/-- Monotone Loop Non-Crossing Theorem:
-    If the branch difference function is strictly positive across the entire interior,
-    no interior crossover points can exist, and the loop is NOT a multiloop. -/
-theorem strictly_positive_difference_no_interior_crossover
-    (loop : ButterflyCharacterization.Domain.Abstractions.HysteresisLoop)
-    (h_strictly_pos : ∀ u : ℝ, loop.extrema.u_min < u → u < loop.extrema.u_max → branchDifference loop u > 0) :
-    ¬ (ButterflyCharacterization.Domain.Abstractions.IsMultiloop loop) := by
-  intro h_multi
-  rcases h_multi with ⟨u_c, h_min_uc, h_uc_max, h_eq⟩
-  have h_diff_pos := h_strictly_pos u_c h_min_uc h_uc_max
-  dsimp [branchDifference] at h_diff_pos
-  linarith
-
-end
+/-- The butterfly operator `twoRelay` is also a multiloop operator, as §IV notes every
+butterfly operator is: crossovers at `υ = 0`, none at `−9/20` and `11/20`. -/
+theorem twoRelay_isMultiloop : IsMultiloopOperator twoRelay.output := by
+  classical
+  have hm : unitCosine.umin = -1 := cosineInput_umin _ _ _
+  have hM : unitCosine.umax = 1 := cosineInput_umax _ _ _
+  refine FinitePreisach.theorem4_7 (aLo := -9 / 20) (a₁ := 0) (aHi := 11 / 20)
+    twoRelay_allSwitch (by rw [hm]; norm_num) (by norm_num) (by norm_num) (by rw [hM]; norm_num)
+    ?_ ?_ (by rw [twoRelay_omega]; norm_num)
+  · rw [FinitePreisach.omega, Finset.sum_filter, Fin.sum_univ_two]
+    norm_num [twoRelay]
+  · rw [FinitePreisach.omega, Finset.sum_filter, Fin.sum_univ_two]
+    norm_num [twoRelay]
 
 end ButterflyCharacterization.Domain.Model

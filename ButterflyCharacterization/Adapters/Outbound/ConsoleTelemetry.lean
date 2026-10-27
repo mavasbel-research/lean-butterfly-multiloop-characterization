@@ -1,24 +1,24 @@
 import ButterflyCharacterization.Domain.Abstractions.Ports
 
+/-!
+# Console telemetry (outbound adapter for `TelemetryPort`)
+-/
+
 namespace ButterflyCharacterization.Adapters.Outbound
 
 open ButterflyCharacterization.Domain.Abstractions
 
-/-!
-# Console Telemetry Adapter
-Implements ITelemetryPort to emit structured telemetry and analysis metrics to standard output.
--/
+/-- The report as lines of text. -/
+def renderReport (r : LoopReport) : List String :=
+  [ s!"ensemble         : {r.ensemble}",
+    s!"input            : u_min = {r.umin}, u_max = {r.umax}, {r.samples} samples/period",
+    s!"switching relays : {r.switching}",
+    s!"area, formula    : {r.formulaArea}   (2 Σ_switching w (α − β), FinitePreisach.area)",
+    s!"area, simulated  : {r.simulatedArea}   (shoelace over the 2nd period)",
+    s!"crossover levels : {r.crossoverLevels.length} sampled interior levels with Σ_Ω w = 0" ]
 
-structure ConsoleTelemetry where
-
-def logInfo (msg : String) : IO Unit :=
-  IO.println s!"[BUTTERFLY-TELEMETRY] [INFO] {msg}"
-
-def logMetric (name : String) (val : Float) : IO Unit :=
-  IO.println s!"[BUTTERFLY-TELEMETRY] [METRIC] {name} = {val}"
-
-instance : ITelemetryPort IO where
-  logInfo := logInfo
-  logMetric := logMetric
+instance : TelemetryPort IO where
+  info msg := IO.eprintln msg
+  report r := (renderReport r).forM IO.println
 
 end ButterflyCharacterization.Adapters.Outbound

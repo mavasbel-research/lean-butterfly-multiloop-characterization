@@ -1,68 +1,61 @@
-import ButterflyCharacterization.Domain.Abstractions.Ports
-import ButterflyCharacterization.Domain.Services.ButterflyAnalysisService
-import ButterflyCharacterization.Adapters.Simulation.SimulatedButterfly
+import ButterflyCharacterization.Domain.Services.LoopAnalysisService
+import ButterflyCharacterization.Adapters.Outbound.BuiltinEnsembles
 import ButterflyCharacterization.Adapters.Outbound.ConsoleTelemetry
+
+/-!
+# Command-line driver (inbound adapter)
+
+`butterfly_cli <ensemble> <u_min> <u_max> [samples]`, `butterfly_cli list`.
+-/
 
 namespace ButterflyCharacterization.Adapters.Inbound
 
 open ButterflyCharacterization.Domain.Abstractions
 open ButterflyCharacterization.Domain.Services
-open ButterflyCharacterization.Adapters.Simulation
 open ButterflyCharacterization.Adapters.Outbound
 
-/-!
-# Inbound CLI Controller
-Handles command line interaction, trajectory analysis requests, and output formatting.
--/
+/-- Parses `[-]digits[.digits]`. -/
+def parseFloat? (s : String) : Option Float :=
+  let (neg, body) : Bool × String :=
+    if s.startsWith "-" then (true, (s.drop 1).toString) else (false, s)
+  let parts := body.splitOn "."
+  let value : Option Float := match parts with
+    | [i] => i.toNat?.map Nat.toFloat
+    | [i, f] =>
+      if f.isEmpty then none else
+      match i.toNat?, f.toNat? with
+      | some a, some b => some (a.toFloat + b.toFloat / (10 : Float) ^ f.length.toFloat)
+      | _, _ => none
+    | _ => none
+  value.map fun v => if neg then -v else v
 
-/-- Float parser from string. -/
-def parseFloatD (s : String) (dflt : Float) : Float :=
-  match s.splitOn "." with
-  | [intPart] =>
-    match intPart.toNat? with
-    | some n => Float.ofNat n
-    | none => dflt
-  | [intPart, fracPart] =>
-    match intPart.toNat?, fracPart.toNat? with
-    | some i, some f =>
-      let len := fracPart.length
-      let rec pow10 (k : Nat) : Float :=
-        match k with
-        | 0 => 1.0
-        | k + 1 => 10.0 * pow10 k
-      Float.ofNat i + (Float.ofNat f) / pow10 len
-    | _, _ => dflt
-  | _ => dflt
-
-def runCliAnalysis (mode : String) (u_span : Float := 2.0) (steps : Nat := 100) : IO UInt32 := do
-  logInfo s!"Executing Butterfly Loop Analysis: mode={mode}, span={u_span}, steps={steps}"
-  let points :=
-    if mode == "standard" then
-      generateStandardCCWLoop u_span steps
-    else
-      generateSymmetricButterfly u_span steps
-
-  let metrics := analyzeSampledLoop points
-  IO.println "=========================================================="
-  IO.println s!"   Loop Classification Results (IEEE TAC 2022 Characterization)"
-  IO.println "=========================================================="
-  IO.println s!"Net Signed Area A:       {metrics.netSignedArea}"
-  IO.println s!"Has Crossovers:          {metrics.hasCrossover}"
-  IO.println s!"Interior Crossover Count:{metrics.crossoverCount}"
-  IO.println s!"Is Butterfly Loop:       {metrics.isButterfly}"
-  IO.println "=========================================================="
-  return 0
+def usage : String := "usage: butterfly_cli list | butterfly_cli <ensemble> <u_min> <u_max> [samples]"
 
 def runCli (args : List String) : IO UInt32 := do
   match args with
-  | [] => runCliAnalysis "butterfly" 2.0 100
-  | [mode] => runCliAnalysis mode 2.0 100
-  | mode :: spanStr :: [] =>
-      let span := parseFloatD spanStr 2.0
-      runCliAnalysis mode span 100
-  | mode :: spanStr :: stepsStr :: _ =>
-      let span := parseFloatD spanStr 2.0
-      let steps := stepsStr.toNat?.getD 100
-      runCliAnalysis mode span steps
+  | ["list"] =>
+    for n in ← EnsembleSourcePort.names (m := IO) do IO.println n
+    return 0
+  | name :: lo :: hi :: rest =>
+    let samples? : Option Nat := match rest with
+      | [] => some 1000
+      | [k] => k.toNat?
+      | _ => none
+    match parseFloat? lo, parseFloat? hi, samples? with
+    | some umin, some umax, some samples =>
+      if !(umin < umax) then
+        IO.eprintln "u_min must be smaller than u_max"
+        return 1
+      if samples < 4 then
+        IO.eprintln "samples must be at least 4"
+        return 1
+      let ok ← runAnalysis (m := IO) name umin umax samples
+      return if ok then 0 else 1
+    | _, _, _ =>
+      IO.eprintln usage
+      return 1
+  | _ =>
+    IO.eprintln usage
+    return 1
 
 end ButterflyCharacterization.Adapters.Inbound

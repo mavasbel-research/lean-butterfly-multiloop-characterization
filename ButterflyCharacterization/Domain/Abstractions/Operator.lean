@@ -1,45 +1,39 @@
-import Mathlib.Basic.Real.Basic
-import Mathlib.Order.Monotone.Basic
+import Mathlib
+
+/-!
+# Hysteresis operators: Definitions 2.1–2.4
+
+IEEE TAC 67(7), 2022, "On the Characterization of Butterfly and Multiloop Hysteresis
+Behavior", §II-A. Signals are functions `ℝ → ℝ` read on `ℝ₊ = [0, ∞)`; an operator maps an
+input signal to an output signal.
+-/
+
+open Set Filter
 
 namespace ButterflyCharacterization.Domain.Abstractions
 
-/-!
-# Mathematical Foundations: Rate Independence and Causality
-Formalization of Definitions 2.1 - 2.4 from:
-"On the Characterization of Butterfly and Multiloop Hysteresis Behavior"
-(IEEE TAC 2022, DOI: 10.1109/TAC.2021.3109533).
--/
+/-- An operator between signals. -/
+abbrev SignalOperator := (ℝ → ℝ) → ℝ → ℝ
 
-/-- Definition 2.1: Time Transformation.
-    A continuous, strictly increasing function φ : ℝ → ℝ with φ(0) = 0. -/
+/-- **Definition 2.1.** A time transformation: continuous, increasing (nondecreasing, as in
+the paper's preliminaries), `φ(0) = 0`, and `φ(t) → ∞`. -/
 structure TimeTransformation where
   toFun : ℝ → ℝ
-  h_zero : toFun 0 = 0
-  h_strict_mono : StrictMono toFun
+  continuousOn : ContinuousOn toFun (Ici 0)
+  monotoneOn : MonotoneOn toFun (Ici 0)
+  map_zero : toFun 0 = 0
+  tendsto_atTop : Tendsto toFun atTop atTop
 
-/-- Coercion allowing TimeTransformation to be used as a function. -/
-instance : CoeFun TimeTransformation (fun _ => ℝ → ℝ) where
-  coe := TimeTransformation.toFun
+/-- **Definition 2.2.** Rate independence: `Φ(u ∘ φ) = Φ(u) ∘ φ` on `ℝ₊`. -/
+def IsRateIndependent (Φ : SignalOperator) : Prop :=
+  ∀ (u : ℝ → ℝ) (φ : TimeTransformation) (t : ℝ), 0 ≤ t →
+    Φ (u ∘ φ.toFun) t = Φ u (φ.toFun t)
 
-/-- Rate-Independent Operator (Definition 2.2).
-    An operator Φ on signals is rate independent if for any time transformation φ,
-    Φ(u ∘ φ) = Φ(u) ∘ φ. -/
-def IsRateIndependent (Phi : (ℝ → ℝ) → (ℝ → ℝ)) : Prop :=
-  ∀ (u : ℝ → ℝ) (phi : TimeTransformation) (t : ℝ),
-    Phi (fun s => u (phi s)) t = Phi u (phi t)
+/-- **Definition 2.3.** Causality: inputs equal on `[0, τ]` give outputs equal on `[0, τ]`. -/
+def IsCausal (Φ : SignalOperator) : Prop :=
+  ∀ (u₁ u₂ : ℝ → ℝ) (τ : ℝ), (∀ t ∈ Icc 0 τ, u₁ t = u₂ t) → ∀ t ∈ Icc 0 τ, Φ u₁ t = Φ u₂ t
 
-/-- Causal Operator (Definition 2.3).
-    An operator Φ is causal if the output up to time τ depends only on the input
-    values up to time τ. -/
-def IsCausal (Phi : (ℝ → ℝ) → (ℝ → ℝ)) : Prop :=
-  ∀ (u₁ u₂ : ℝ → ℝ) (tau : ℝ),
-    (∀ t ≤ tau, u₁ t = u₂ t) → (∀ t ≤ tau, Phi u₁ t = Phi u₂ t)
-
-/-- Definition 2.4: Hysteresis Operator.
-    An operator Φ is a hysteresis operator if it is both causal and rate independent. -/
-structure HysteresisOperator where
-  Phi : (ℝ → ℝ) → (ℝ → ℝ)
-  h_causal : IsCausal Phi
-  h_rate_independent : IsRateIndependent Phi
+/-- **Definition 2.4.** A hysteresis operator is causal and rate independent. -/
+def IsHysteresisOperator (Φ : SignalOperator) : Prop := IsCausal Φ ∧ IsRateIndependent Φ
 
 end ButterflyCharacterization.Domain.Abstractions

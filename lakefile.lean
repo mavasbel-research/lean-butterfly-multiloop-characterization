@@ -20,11 +20,13 @@ lean_lib «ButterflyCharacterization» where
 lean_lib «Tests» where
   srcDir := "."
   roots := #[
-    `tests.unit.TestRelayArea,
-    `tests.unit.TestButterflyDefinitions,
-    `tests.component.TestCrossover,
-    `tests.live.TestButterflyBalance,
-    `tests.e2e.TestMultiloopSynthesis
+    `tests.support.AxiomAuditCore,
+    `tests.unit.AxiomAudit,
+    `tests.unit.TestStatements,
+    `tests.unit.TestService,
+    `tests.component.TestAdapters,
+    `tests.live.TestCli,
+    `tests.e2e.TestParity
   ]
 
 lean_exe «run_tests» where

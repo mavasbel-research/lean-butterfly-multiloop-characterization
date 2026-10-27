@@ -1,36 +1,22 @@
-import tests.unit.TestRelayArea
-import tests.unit.TestButterflyDefinitions
-import tests.component.TestCrossover
-import tests.live.TestButterflyBalance
-import tests.e2e.TestMultiloopSynthesis
+import tests.component.TestAdapters
+import tests.live.TestCli
+import tests.e2e.TestParity
 
-open Tests.Unit
-open Tests.Component
-open Tests.Live
-open Tests.E2E
+/-!
+# Test runner
+
+Build-time unit tier (`lake build Tests`): `tests/unit/AxiomAudit.lean`,
+`tests/unit/TestStatements.lean`, `tests/unit/TestService.lean`.
+Run-time tiers (`lake exe run_tests`, after `lake build butterfly_cli`): component, live, e2e.
+-/
 
 def main : IO UInt32 := do
-  IO.println "=========================================================="
-  IO.println "   Running ButterflyCharacterization Lean 4 Test Suite    "
-  IO.println "   (IEEE TAC 2022 Characterization Formalization)         "
-  IO.println "=========================================================="
-
-  let u1 ← testRelayAreaEvaluation
-  if !u1 then return 1
-
-  let u2 ← testButterflyDefinitionsEvaluation
-  if !u2 then return 1
-
-  let c1 ← testCrossoverComponentEvaluation
-  if !c1 then return 1
-
-  let l1 ← testButterflyLiveEvaluation
-  if !l1 then return 1
-
-  let e1 ← testMultiloopE2EEvaluation
-  if !e1 then return 1
-
-  IO.println "=========================================================="
-  IO.println "   ALL TEST TIERS (UNIT, COMPONENT, LIVE, E2E) PASSED     "
-  IO.println "=========================================================="
-  return 0
+  let c ← Tests.Component.run
+  let l ← Tests.Live.run
+  let e ← Tests.E2E.run
+  if c && l && e then
+    IO.println "ALL RUN-TIME TIERS PASSED (component, live, e2e)"
+    return 0
+  else
+    IO.println "FAILURES (see FAIL lines above)"
+    return 1
