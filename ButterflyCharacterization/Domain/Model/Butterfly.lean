@@ -123,25 +123,26 @@ noncomputable def twoRelay : FinitePreisach 2 where
 /-- The input `−cos t` (from `−1` to `1`). -/
 noncomputable def unitCosine : SimplePeriodicInput := cosineInput (-1) 1 (by norm_num)
 
-theorem twoRelay_allSwitch : twoRelay.AllSwitch unitCosine := by
-  intro i
-  rw [unitCosine, cosineInput_umin, cosineInput_umax]
-  fin_cases i <;> norm_num [twoRelay]
+theorem unitCosine_umin : unitCosine.umin = -1 := cosineInput_umin _ _ _
+theorem unitCosine_umax : unitCosine.umax = 1 := cosineInput_umax _ _ _
+theorem unitCosine_late : unitCosine.T ≤ unitCosine.t₁ := le_refl (2 * Real.pi)
 
 /-- At `υ = 11/20` only the second relay's band contains `υ`. -/
-theorem twoRelay_omega : ∑ i ∈ twoRelay.omega (11 / 20), twoRelay.w i = -1 := by
+theorem twoRelay_omega : ∑ i ∈ twoRelay.omega unitCosine (11 / 20), twoRelay.w i = -1 := by
   classical
-  rw [FinitePreisach.omega, Finset.sum_filter, Fin.sum_univ_two]
+  rw [FinitePreisach.omega, Finset.sum_filter, Fin.sum_univ_two, unitCosine_umin,
+    unitCosine_umax]
   norm_num [twoRelay]
 
 theorem twoRelay_isHysteresisLoop : IsHysteresisLoop twoRelay.output unitCosine unitCosine.t₁ :=
-  FinitePreisach.isHysteresisLoop (υ := 11 / 20) twoRelay_allSwitch
-    (by rw [unitCosine, cosineInput_umin, cosineInput_umax]; norm_num)
+  FinitePreisach.isHysteresisLoop (υ := 11 / 20) unitCosine_late
+    (by rw [unitCosine_umin, unitCosine_umax]; norm_num)
     (by rw [twoRelay_omega]; norm_num)
 
 theorem twoRelay_loopArea : loopArea twoRelay.output unitCosine = 0 := by
-  rw [FinitePreisach.area_allSwitch twoRelay_allSwitch twoRelay_isHysteresisLoop,
-    Fin.sum_univ_two]
+  classical
+  rw [twoRelay.area unitCosine twoRelay_isHysteresisLoop, FinitePreisach.switching,
+    Finset.sum_filter, Fin.sum_univ_two, unitCosine_umin, unitCosine_umax]
   norm_num [twoRelay]
 
 /-- **Definition 2.7** is satisfiable by a Preisach-type operator: `twoRelay` is a butterfly

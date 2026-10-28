@@ -4,6 +4,7 @@ import ButterflyCharacterization.Domain.Abstractions.Ports
 import ButterflyCharacterization.Domain.Model.Relay
 import ButterflyCharacterization.Domain.Model.SignedArea
 import ButterflyCharacterization.Domain.Model.RelayLoop
+import ButterflyCharacterization.Domain.Model.RelayPeriod
 import ButterflyCharacterization.Domain.Model.Preisach
 import ButterflyCharacterization.Domain.Model.Branches
 import ButterflyCharacterization.Domain.Model.CosineInput

@@ -37,10 +37,11 @@ info: @FinitePreisach.area : ∀ {n : ℕ} (P : FinitePreisach n) (I : SimplePer
 #check @FinitePreisach.area
 
 /--
-info: @FinitePreisach.lemma4_4 : ∀ {n : ℕ} {P : FinitePreisach n} {I : SimplePeriodicInput},
-  P.AllSwitch I →
+info: @FinitePreisach.lemma4_4 : ∀ {n : ℕ} {P : FinitePreisach n} {I : SimplePeriodicInput} {tp : ℝ},
+  IsHysteresisLoop P.output I tp →
     ∀ {υ γ : ℝ},
-      IsCrossoverPoint I (P.output I.u) (υ, γ) ↔ υ ∈ Set.Icc I.umin I.umax ∧ γ = P.yUp υ ∧ ∑ i ∈ P.omega υ, P.w i = 0
+      IsCrossoverPoint I (P.output I.u) (υ, γ) ↔
+        υ ∈ Set.Icc I.umin I.umax ∧ γ = P.yUp I υ ∧ ∑ i ∈ P.omega I υ, P.w i = 0
 -/
 #guard_msgs in
 #check @FinitePreisach.lemma4_4
@@ -57,15 +58,13 @@ info: @FinitePreisach.corollary3_4 : ∀ {n : ℕ} (P : FinitePreisach n) (σ : 
 #check @FinitePreisach.corollary3_4
 
 /--
-info: @FinitePreisach.theorem4_7 : ∀ {n : ℕ} {P : FinitePreisach n} {I : SimplePeriodicInput},
-  P.AllSwitch I →
-    ∀ {aLo a₁ aHi : ℝ},
-      I.umin < aLo →
-        aLo < a₁ →
-          a₁ < aHi →
-            aHi < I.umax →
-              ∑ i ∈ P.omega a₁, P.w i = 0 →
-                ∑ i ∈ P.omega aLo, P.w i ≠ 0 → ∑ i ∈ P.omega aHi, P.w i ≠ 0 → IsMultiloopOperator P.output
+info: @FinitePreisach.theorem4_7 : ∀ {n : ℕ} {P : FinitePreisach n} {β₀ aLo a₁ aHi α₀ : ℝ},
+  β₀ < aLo →
+    aLo < a₁ →
+      a₁ < aHi →
+        aHi < α₀ →
+          ∑ i ∈ P.bandSet β₀ α₀ a₁, P.w i = 0 →
+            ∑ i ∈ P.bandSet β₀ α₀ aLo, P.w i ≠ 0 → ∑ i ∈ P.bandSet β₀ α₀ aHi, P.w i ≠ 0 → IsMultiloopOperator P.output
 -/
 #guard_msgs in
 #check @FinitePreisach.theorem4_7
@@ -98,9 +97,29 @@ noncomputable def singleRelay : FinitePreisach 1 :=
 /-- F1/F2: the loop area is computed, not chosen: a single positive relay has area `2`. -/
 theorem singleRelay_area : loopArea singleRelay.output unitCosine = 2 := by
   classical
-  rw [FinitePreisach.area_of_late _ _ (le_refl _), FinitePreisach.switching, unitCosine,
-    cosineInput_umin, cosineInput_umax, Finset.sum_filter, Fin.sum_univ_one]
+  rw [FinitePreisach.area_of_late _ _ unitCosine_late, FinitePreisach.switching,
+    unitCosine_umin, unitCosine_umax, Finset.sum_filter, Fin.sum_univ_one]
   norm_num [singleRelay]
+
+/-- Lemma 4.4 without `AllSwitch`: a relay that never switches (`(2, −2)` on `[−1, 1]`) adds a
+constant to both branches and no crossover condition. -/
+noncomputable def withFrozen : FinitePreisach 2 :=
+  ⟨![1 / 2, 2], ![-1 / 2, -2], fun i => by fin_cases i <;> norm_num, ![1, 5], ![1, 1]⟩
+
+theorem withFrozen_isLoop : IsHysteresisLoop withFrozen.output unitCosine unitCosine.t₁ := by
+  classical
+  refine FinitePreisach.isHysteresisLoop (υ := 0) unitCosine_late
+    (by rw [unitCosine_umin, unitCosine_umax]; norm_num) ?_
+  rw [FinitePreisach.omega, Finset.sum_filter, Fin.sum_univ_two, unitCosine_umin, unitCosine_umax]
+  norm_num [withFrozen]
+
+example : ¬ IsCrossoverPoint unitCosine (withFrozen.output unitCosine.u) (0, withFrozen.yUp unitCosine 0) := by
+  classical
+  rw [FinitePreisach.lemma4_4 withFrozen_isLoop]
+  rintro ⟨-, -, h⟩
+  rw [FinitePreisach.omega, Finset.sum_filter, Fin.sum_univ_two, unitCosine_umin,
+    unitCosine_umax] at h
+  norm_num [withFrozen] at h
 
 /-- F1: the relay output depends on the input: `+1` above `α`, `−1` below `β`. -/
 example : ccwRelay 1 0 0 (fun _ => 2) 0 = 1 ∧ ccwRelay 1 0 0 (fun _ => -1) 0 = -1 :=
