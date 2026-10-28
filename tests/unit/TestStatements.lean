@@ -88,6 +88,37 @@ fun Φ ↦ IsHysteresisOperator Φ ∧ ∃ I tp, IsHysteresisLoop Φ I tp ∧ lo
 #guard_msgs in
 #print IsButterflyOperator
 
+/-! ### Preisach operator (4) -/
+
+/--
+info: @IntegralPreisach.area : ∀ {I : SimplePeriodicInput} (P : IntegralPreisach) {tp : ℝ},
+  IsHysteresisLoop P.output I tp → loopArea P.output I = P.areaOf I.umin I.umax
+-/
+#guard_msgs in
+#check @IntegralPreisach.area
+
+/--
+info: IntegralPreisach.theorem3_3 : ∀ (P : IntegralPreisach) {β₁ α₁ : ℝ},
+  β₁ < α₁ →
+    Filter.Tendsto (fun M ↦ P.areaOf β₁ M) Filter.atTop Filter.atTop →
+      Filter.Tendsto (fun m ↦ P.areaOf m α₁) Filter.atBot Filter.atBot →
+        (∀ (m M : ℝ), m ≤ β₁ → α₁ ≤ M → ∃ υ ∈ Set.Icc m M, P.omegaWeight m M υ ≠ 0) → IsButterflyOperator P.output
+-/
+#guard_msgs in
+#check @IntegralPreisach.theorem3_3
+
+/--
+info: IntegralPreisach.corollary3_4 : ∀ (P : IntegralPreisach) (κ : ℝ),
+  (∀ (p : ℝ × ℝ), P.μ (ButterflyCharacterization.Domain.Model.refl κ p) = -P.μ p) →
+    ∀ {I : SimplePeriodicInput} {tp : ℝ}, IsHysteresisLoop P.output I tp → I.umin + I.umax = κ → loopArea P.output I = 0
+-/
+#guard_msgs in
+#check @IntegralPreisach.corollary3_4
+
+/-- info: ButterflyCharacterization.Domain.Model.antisymWitness_isButterfly : IsButterflyOperator antisymWitness.output -/
+#guard_msgs in
+#check antisymWitness_isButterfly
+
 /-! ### Non-vacuity -/
 
 /-- One positive relay `(1/2, −1/2)`. -/

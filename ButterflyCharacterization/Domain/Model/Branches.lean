@@ -1,4 +1,4 @@
-import ButterflyCharacterization.Domain.Model.Preisach
+import ButterflyCharacterization.Domain.Model.BranchForm
 import ButterflyCharacterization.Domain.Model.RelayPeriod
 
 /-!
@@ -54,34 +54,18 @@ theorem output_falling {x : ℝ} (hx : x ∈ Icc I.t₂ (I.t₁ + I.T)) :
     P.output I.u x = P.yDown I (I.u x) :=
   Finset.sum_congr rfl fun i _ => by rw [relay, relay_falling (P.ordered i) hx]
 
-/-- Every level between `u_min` and `u_max` is reached on the ascending branch. -/
-theorem exists_rising {υ : ℝ} (hυ : υ ∈ Icc I.umin I.umax) :
-    ∃ x ∈ Icc I.t₁ I.t₂, I.u x = υ :=
-  intermediate_value_Icc I.t₁_lt_t₂.le I.continuous.continuousOn hυ
+theorem output_periodic (hT : I.T ≤ I.t₁) {t : ℝ} (ht : I.t₁ ≤ t) :
+    P.output I.u (t + I.T) = P.output I.u t :=
+  Finset.sum_congr rfl fun i _ => by rw [relay, relay_periodic hT ht]
 
-/-- Every level between `u_min` and `u_max` is reached on the descending branch. -/
-theorem exists_falling {υ : ℝ} (hυ : υ ∈ Icc I.umin I.umax) :
-    ∃ x ∈ Icc I.t₂ (I.t₁ + I.T), I.u x = υ := by
-  have hυ' : υ ∈ Icc (I.u (I.t₁ + I.T)) (I.u I.t₂) := by rw [I.end_eq]; exact hυ
-  exact intermediate_value_Icc' I.t₂_lt.le I.continuous.continuousOn hυ'
-
-theorem mem_ascending (hT : I.T ≤ I.t₁) {p : ℝ × ℝ} :
-    p ∈ I.ascending (P.output I.u) ↔ p.1 ∈ Icc I.umin I.umax ∧ p.2 = P.yUp I p.1 := by
-  constructor
-  · rintro ⟨x, hx, rfl⟩
-    exact ⟨I.bounds x, output_rising hT hx⟩
-  · rintro ⟨hυ, h2⟩
-    obtain ⟨x, hx, hux⟩ := exists_rising hυ
-    exact ⟨x, hx, Prod.ext hux (by show P.output I.u x = p.2; rw [output_rising hT hx, hux, h2])⟩
-
-theorem mem_descending {p : ℝ × ℝ} :
-    p ∈ I.descending (P.output I.u) ↔ p.1 ∈ Icc I.umin I.umax ∧ p.2 = P.yDown I p.1 := by
-  constructor
-  · rintro ⟨x, hx, rfl⟩
-    exact ⟨I.bounds x, output_falling hx⟩
-  · rintro ⟨hυ, h2⟩
-    obtain ⟨x, hx, hux⟩ := exists_falling hυ
-    exact ⟨x, hx, Prod.ext hux (by show P.output I.u x = p.2; rw [output_falling hx, hux, h2])⟩
+variable (P) in
+/-- The branch form of a finite Preisach operator on a period with `T ≤ t₁`. -/
+noncomputable def branchForm (hT : I.T ≤ I.t₁) : BranchForm P.output I where
+  yUp := P.yUp I
+  yDown := P.yDown I
+  rising _ hx := output_rising hT hx
+  falling _ hx := output_falling hx
+  periodic _ ht := output_periodic hT ht
 
 /-- The branch gap: `y⁺(υ) − y⁻(υ) = −2 Σ_{Ω_υ} wᵢ`. -/
 theorem yUp_sub_yDown {υ : ℝ} (hυ : υ ∈ Icc I.umin I.umax) :
@@ -96,20 +80,11 @@ theorem yUp_sub_yDown {υ : ℝ} (hυ : υ ∈ Icc I.umin I.umax) :
 theorem lemma4_4_late (hT : I.T ≤ I.t₁) {υ γ : ℝ} :
     IsCrossoverPoint I (P.output I.u) (υ, γ) ↔
       υ ∈ Icc I.umin I.umax ∧ γ = P.yUp I υ ∧ ∑ i ∈ P.omega I υ, P.w i = 0 := by
-  unfold IsCrossoverPoint
-  rw [mem_inter_iff, mem_ascending hT, mem_descending]
-  constructor
-  · rintro ⟨⟨hυ, hup⟩, -, hdn⟩
-    have gap := P.yUp_sub_yDown hυ
-    refine ⟨hυ, hup, ?_⟩
-    simp only at hup hdn
-    linarith
-  · rintro ⟨hυ, hup, hΩ⟩
-    have gap := P.yUp_sub_yDown hυ
-    refine ⟨⟨hυ, hup⟩, hυ, ?_⟩
-    simp only at hup ⊢
-    rw [hΩ] at gap
-    linarith
+  rw [(P.branchForm hT).crossover_iff]
+  show _ ∧ _ ∧ P.yUp I υ = P.yDown I υ ↔ _
+  refine and_congr_right fun hυ => and_congr_right fun _ => ?_
+  have gap := P.yUp_sub_yDown hυ
+  constructor <;> intro h <;> linarith
 
 /-! ### Moving the period on a hysteresis loop -/
 
@@ -177,74 +152,14 @@ theorem lemma4_4 {tp : ℝ} (hl : IsHysteresisLoop P.output I tp) {υ γ : ℝ} 
   rwa [ascending_shift hl, descending_shift hl, shift_umin, shift_umax, yUp_shift,
     omega_shift] at key
 
-/-! ### The orbit and Definition 2.5 -/
-
-theorem output_periodic (hT : I.T ≤ I.t₁) {t : ℝ} (ht : I.t₁ ≤ t) :
-    P.output I.u (t + I.T) = P.output I.u t :=
-  Finset.sum_congr rfl fun i _ => by rw [relay, relay_periodic hT ht]
-
-theorem output_periodic_nat (hT : I.T ≤ I.t₁) {t : ℝ} (ht : I.t₁ ≤ t) (k : ℕ) :
-    P.output I.u (t + k * I.T) = P.output I.u t := by
-  induction k with
-  | zero => simp
-  | succ k ih =>
-    rw [Nat.cast_succ, add_mul, one_mul, ← add_assoc,
-      output_periodic hT (by nlinarith [I.period_pos, (Nat.cast_nonneg k : (0 : ℝ) ≤ k)]), ih]
-
-/-- From `t₁` on, the orbit is the union of the two branches of one period. -/
-theorem orbit_eq (hT : I.T ≤ I.t₁) :
-    I.orbit (P.output I.u) I.t₁ = I.ascending (P.output I.u) ∪ I.descending (P.output I.u) := by
-  have hTp := I.period_pos
-  apply Subset.antisymm
-  · rintro _ ⟨t, ht, rfl⟩
-    set k := ⌊(t - I.t₁) / I.T⌋₊
-    have hk1 : (k : ℝ) * I.T ≤ t - I.t₁ := by
-      have := Nat.floor_le (div_nonneg (sub_nonneg.mpr ht) hTp.le)
-      rwa [le_div_iff₀ hTp] at this
-    have hk2 : t - I.t₁ < (k + 1) * I.T := by
-      have := Nat.lt_floor_add_one ((t - I.t₁) / I.T)
-      rwa [div_lt_iff₀ hTp] at this
-    set x := t - k * I.T
-    have hx : x ∈ Icc I.t₁ (I.t₁ + I.T) := ⟨by linarith, by linarith⟩
-    have hux : I.u t = I.u x := by
-      rw [show t = x + k * I.T by ring]
-      exact I.periodic.nat_mul k x
-    have hyx : P.output I.u t = P.output I.u x := by
-      rw [show t = x + k * I.T by ring]
-      exact output_periodic_nat hT hx.1 k
-    show (I.u t, P.output I.u t) ∈ _
-    rw [hux, hyx]
-    rcases le_total x I.t₂ with h2 | h2
-    · exact Or.inl ⟨x, ⟨hx.1, h2⟩, rfl⟩
-    · exact Or.inr ⟨x, ⟨h2, hx.2⟩, rfl⟩
-  · rintro _ (⟨t, ht, rfl⟩ | ⟨t, ht, rfl⟩)
-    · exact ⟨t, ht.1, rfl⟩
-    · exact ⟨t, mem_Ici.mpr (I.t₁_lt_t₂.le.trans ht.1), rfl⟩
-
-/-- The vertical line at `υ` meets the orbit exactly in `(υ, y⁺(υ))` and `(υ, y⁻(υ))`. -/
-theorem orbit_slice (hT : I.T ≤ I.t₁) {υ : ℝ} (hυ : υ ∈ Icc I.umin I.umax) :
-    {p ∈ I.orbit (P.output I.u) I.t₁ | p.1 = υ} = {(υ, P.yUp I υ), (υ, P.yDown I υ)} := by
-  ext ⟨a, b⟩
-  simp only [orbit_eq hT, mem_ofPred_eq, mem_union, mem_insert_iff, mem_singleton_iff,
-    Prod.mk.injEq, mem_ascending hT, mem_descending]
-  constructor
-  · rintro ⟨(⟨-, hb⟩ | ⟨-, hb⟩), rfl⟩
-    · exact Or.inl ⟨rfl, hb⟩
-    · exact Or.inr ⟨rfl, hb⟩
-  · rintro (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
-    · exact ⟨Or.inl ⟨hυ, rfl⟩, rfl⟩
-    · exact ⟨Or.inr ⟨hυ, rfl⟩, rfl⟩
-
 /-- **Definition 2.5** holds from `t_p = t₁` (with `T ≤ t₁`) as soon as one level `υ` has
 `Σ_{Ω_υ} wᵢ ≠ 0`. -/
 theorem isHysteresisLoop (hT : I.T ≤ I.t₁) {υ : ℝ} (hυ : υ ∈ Icc I.umin I.umax)
-    (hΩ : ∑ i ∈ P.omega I υ, P.w i ≠ 0) : IsHysteresisLoop P.output I I.t₁ := by
-  refine ⟨I.start_nonneg, le_rfl, fun t ht => output_periodic hT ht, υ, ?_⟩
-  rw [orbit_slice hT hυ, ncard_pair]
-  intro heq
-  have gap := P.yUp_sub_yDown hυ
-  have : P.yUp I υ = P.yDown I υ := (Prod.mk.injEq _ _ _ _ ▸ heq).2
-  exact hΩ (by linarith)
+    (hΩ : ∑ i ∈ P.omega I υ, P.w i ≠ 0) : IsHysteresisLoop P.output I I.t₁ :=
+  (P.branchForm hT).isHysteresisLoop hυ fun h => hΩ (by
+    have gap := P.yUp_sub_yDown hυ
+    have h' : P.yUp I υ = P.yDown I υ := h
+    linarith)
 
 end FinitePreisach
 

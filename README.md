@@ -20,8 +20,9 @@ no `sorry`, no added axiom, no `native_decide`. Statements are pinned verbatim i
 **Models.** Signals are functions `ℝ → ℝ` read on `[0, ∞)`. The relay is eq. (2) itself, in
 closed form (`ccwRelay`). Inputs are `C¹` simple periodic inputs (`SimplePeriodicInput`:
 `T`-periodic, nondecreasing from the minimum at `t₁` to the maximum at `t₂`, nonincreasing
-back). The Preisach operator is the finite one, `Σᵢ wᵢ R_{αᵢ,βᵢ}` (`FinitePreisach`), not the
-integral (4).
+back). Two Preisach operators: the finite one `Σᵢ wᵢ R_{αᵢ,βᵢ}` (`FinitePreisach`) and the
+integral operator (4) (`IntegralPreisach`: Lebesgue-integrable weight `μ` vanishing off
+`α > β`, measurable initial states in `[−1, 1]`).
 
 | Paper | Lean | Status |
 |---|---|---|
@@ -40,8 +41,11 @@ integral (4).
 | finite Preisach is a hysteresis operator | `FinitePreisach.output_hysteresis` | proved |
 | area `A = 2∑_{switching} wᵢ(αᵢ − βᵢ)` (finite form of the area formula in the proof of Thm. 3.3) | `FinitePreisach.area` | proved, on any hysteresis loop |
 | §III: μ ≥ 0 ⇒ no clockwise loop; μ ≤ 0 ⇒ no counterclockwise loop | `not_clockwise_of_nonneg`, `not_counterclockwise_of_nonpos` | proved, finite form |
-| **Thm. 3.3** | `theorem3_3_step_max`, `theorem3_3_step_min` (the intermediate-value step of the proof) | **partial**: the integral operator (4), the extended domains and the moment conditions (5)–(6) are not formalized |
-| **Cor. 3.4** | `FinitePreisach.corollary3_4` | **proved, finite form**, with the reflection about `B` and the input condition `u_min + u_max = κ` (see §2) |
+| eq. (4) is a hysteresis operator | `IntegralPreisach.output_hysteresis` | proved |
+| area of a loop of (4): `A = ∬ μ(α,β)·2(α−β)` over `u_min < β, α < u_max` | `IntegralPreisach.area` (Fubini + Lemma 3.1) | proved, on any hysteresis loop |
+| **Thm. 3.3** | `IntegralPreisach.theorem3_3` (integral operator); `theorem3_3_step_max/min` (finite) | **proved, with the limits as hypotheses**: the paper derives `A(β₁, M) → +∞` and `A(m, α₁) → −∞` from the two-sided sign and (5)–(6); that derivation is not formalized. The area is proved continuous in `u_max` and `u_min` (dominated convergence) and the IVT gives the zero-area loop |
+| **Cor. 3.4** | `IntegralPreisach.corollary3_4` (integral), `FinitePreisach.corollary3_4` (finite) | **proved**, with the reflection about `B` and the input condition `u_min + u_max = κ` (see §2) |
+| Cor. 3.4 is satisfiable | `antisymWitness_isButterfly`: `μ = 𝟙_{(0,1)×(−1,0)} − 𝟙_{(1,2)×(0,1)}` | an integral operator that is a butterfly operator |
 | **Lemma 4.4** | `FinitePreisach.lemma4_4` | **proved, finite form**, on any hysteresis loop; `Ω_υ` = switching relays with `βᵢ ≤ υ ≤ αᵢ` (closed bands, see `Branches.lean`) |
 | **Thm. 4.7** | `FinitePreisach.theorem4_7` | **proved, finite form**, hypotheses on relays and weights only, as in the paper |
 | every relay over one period | `relay_rising`, `relay_falling`, `relay_periodic` (`RelayPeriod.lean`) | proved for switching, down-only, up-only and frozen relays |
@@ -83,7 +87,11 @@ Both are proved in Lean, in `ButterflyCharacterization/Domain/Model/Butterfly.le
 │   │   │   ├── Preisach.lean     # finite Preisach; area formula; §III signs
 │   │   │   ├── Branches.lean     # branches, Lemma 4.4, Def. 2.5 for finite Preisach
 │   │   │   ├── CosineInput.lean  # a concrete simple periodic input
-│   │   │   ├── Butterfly.lean    # Thm. 3.3 step, Cor. 3.4, findings, butterfly witness
+│   │   │   ├── BranchForm.lean   # branch form of an operator: orbit, Def. 2.5, crossovers
+│   │   │   ├── IntegralPreisach.lean  # eq. (4); hysteresis operator; area by Fubini
+│   │   │   ├── Theorem33.lean    # branches of (4); area continuous in u_min/u_max; Thm. 3.3
+│   │   │   ├── Corollary34.lean  # Cor. 3.4 for (4); antisymmetric witness
+│   │   │   ├── Butterfly.lean    # Thm. 3.3 step, Cor. 3.4 (finite), findings, butterfly witness
 │   │   │   └── Multiloop.lean    # Thm. 4.7, multiloop witness
 │   │   └── Services/
 │   │       └── LoopAnalysisService.lean   # Float simulation + closed forms; use case runAnalysis
@@ -142,7 +150,7 @@ area, simulated  : 2.003617   (shoelace over the 2nd period)
 
 | Tier | Command | Result |
 |---|---|---|
-| unit | `lake build Tests` | axiom audit: **348 declarations in 17 modules, all standard**; 10 statements pinned; 4 non-vacuity checks; 5 service outputs pinned |
+| unit | `lake build Tests` | axiom audit: **459 declarations in 21 modules, all standard**; 14 statements pinned; 4 non-vacuity checks; 5 service outputs pinned |
 | component | `lake exe run_tests` | 4/4 PASS |
 | live | `lake exe run_tests` | 8/8 PASS (CLI output and exit codes) |
 | e2e | `lake exe run_tests` | 10/10 PASS: the Float formula equals the Lean-proved area in 4 cases; simulated error falls from 100 to 1000 samples (e.g. two-relay 0.016048 → 0.002728) |
@@ -156,8 +164,10 @@ module by construction.
 
 ## 6. Known gaps
 
-* The integral Preisach operator (4), interfaces `𝓘` and the weighting function `μ` are not
-  formalized; Thm. 3.3, Lemma 4.4 and Thm. 4.7 are proved for finite ensembles only.
+* Thm. 3.3: the step from the sign of `μ` and (5)–(6) to the two area limits is not
+  formalized (the limits are hypotheses). Interfaces `𝓘` are represented by the initial
+  states `r₀` only.
+* Lemma 4.4 and Thm. 4.7 are proved for finite ensembles only.
 * Inputs are `C¹` (paper: absolutely continuous).
 * The `Float` simulation is not proved correct; the e2e tier compares it with the proved values.
 * Cor. 5.1 is not formalized.

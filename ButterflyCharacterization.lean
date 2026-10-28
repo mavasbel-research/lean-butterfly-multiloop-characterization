@@ -6,10 +6,14 @@ import ButterflyCharacterization.Domain.Model.SignedArea
 import ButterflyCharacterization.Domain.Model.RelayLoop
 import ButterflyCharacterization.Domain.Model.RelayPeriod
 import ButterflyCharacterization.Domain.Model.Preisach
+import ButterflyCharacterization.Domain.Model.BranchForm
 import ButterflyCharacterization.Domain.Model.Branches
 import ButterflyCharacterization.Domain.Model.CosineInput
 import ButterflyCharacterization.Domain.Model.Butterfly
 import ButterflyCharacterization.Domain.Model.Multiloop
+import ButterflyCharacterization.Domain.Model.IntegralPreisach
+import ButterflyCharacterization.Domain.Model.Theorem33
+import ButterflyCharacterization.Domain.Model.Corollary34
 import ButterflyCharacterization.Domain.Services.LoopAnalysisService
 import ButterflyCharacterization.Adapters.Outbound.BuiltinEnsembles
 import ButterflyCharacterization.Adapters.Outbound.ConsoleTelemetry
