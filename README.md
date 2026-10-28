@@ -43,7 +43,9 @@ integral operator (4) (`IntegralPreisach`: Lebesgue-integrable weight `μ` vanis
 | §III: μ ≥ 0 ⇒ no clockwise loop; μ ≤ 0 ⇒ no counterclockwise loop | `not_clockwise_of_nonneg`, `not_counterclockwise_of_nonpos` | proved, finite form |
 | eq. (4) is a hysteresis operator | `IntegralPreisach.output_hysteresis` | proved |
 | area of a loop of (4): `A = ∬ μ(α,β)·2(α−β)` over `u_min < β, α < u_max` | `IntegralPreisach.area` (Fubini + Lemma 3.1) | proved, on any hysteresis loop |
-| **Thm. 3.3** | `IntegralPreisach.theorem3_3` (integral operator); `theorem3_3_step_max/min` (finite) | **proved, with the limits as hypotheses**: the paper derives `A(β₁, M) → +∞` and `A(m, α₁) → −∞` from the two-sided sign and (5)–(6); that derivation is not formalized. The area is proved continuous in `u_max` and `u_min` (dominated convergence) and the IVT gives the zero-area loop |
+| **Thm. 3.3** | `IntegralPreisach.theorem3_3_moments` (`Theorem33Moments.lean`) | **proved**, with the hypotheses the paper's proof uses (see §2, finding 3): `s·μ ≥ 0` on `P₁₊^ext = {β > β₁, α ≥ α₁}`, `s·μ ≤ 0` on `P₁₋^ext = {β ≤ β₁, α < α₁}`, `μ(α − β)` not integrable on either region, and a non-degenerate loop for every input range `⊇ [β₁, α₁]`. Steps: monotone convergence gives `h(λ) → ∞` on both sides; the area is continuous in `u_max`, `u_min` (dominated convergence); the IVT gives the zero-area loop |
+| Thm. 3.3, intermediate forms | `theorem3_3_of_signs` (areas of opposite sign), `theorem3_3` (the two limits); finite: `theorem3_3_step_max/min` | proved |
+| Thm. 3.3 is satisfiable | `butterflyWitness_isButterfly` (`Theorem33Witness.lean`): `μ = f₊ − f₊∘refl₁ + 𝟙_{Q₀}`, `f₊ = α⁻²𝟙{α>1}𝟙{1/2<β<1}` | every hypothesis of `theorem3_3_moments` is proved for it (integrable `μ` with unbounded first moments) |
 | **Cor. 3.4** | `IntegralPreisach.corollary3_4` (integral), `FinitePreisach.corollary3_4` (finite) | **proved**, with the reflection about `B` and the input condition `u_min + u_max = κ` (see §2) |
 | Cor. 3.4 is satisfiable | `antisymWitness_isButterfly`: `μ = 𝟙_{(0,1)×(−1,0)} − 𝟙_{(1,2)×(0,1)}` | an integral operator that is a butterfly operator |
 | **Lemma 4.4** | `FinitePreisach.lemma4_4` | **proved, finite form**, on any hysteresis loop; `Ω_υ` = switching relays with `βᵢ ≤ υ ≤ αᵢ` (closed bands, see `Branches.lean`) |
@@ -54,7 +56,7 @@ integral operator (4) (`IntegralPreisach`: Lebesgue-integrable weight `μ` vanis
 
 ## 2. Findings about the paper's text
 
-Both are proved in Lean, in `ButterflyCharacterization/Domain/Model/Butterfly.lean`.
+Findings 1–2 are proved in Lean, in `ButterflyCharacterization/Domain/Model/Butterfly.lean`; finding 3 is a reading of the printed text.
 
 1. **Cor. 3.4 antisymmetry.** The paper writes "μ antisymmetric with respect to B, i.e.,
    μ(α, β) = −μ(−α, −β)". For `(α, β)` in the Preisach plane (`α > β`), `(−α, −β)` has
@@ -67,6 +69,16 @@ Both are proved in Lean, in `ButterflyCharacterization/Domain/Model/Butterfly.le
    `α + β = 1` (`κ = 1`); the input `u_min = −1/2`, `u_max = 5/2` satisfies the paper's rule,
    and the loop area is `−4`. With `u_min + u_max = κ` the area is `0`
    (`corollary3_4_symmetric_input`, `FinitePreisach.corollary3_4`).
+3. **Thm. 3.3 moment conditions.** The paper states (5) `∫_r^∞ μ(α, β) β dβ = ∞` and
+   (6) `∫_{−∞}^r μ(α, β) α dα = ∞` "for all `(α, β) ∈ P`". Read literally, (5) integrates
+   `β` beyond `α`, where `μ = 0` (the plane is `α > β`), so it cannot hold for a weight that
+   is integrable on bounded sets. The proof only uses that
+   `h(λ) = 2∬_{P₁₊^{ext,λ}} |μ| (α − β) → ∞` as `λ → ∞` (and the mirror on `P₁₋^{ext,λ}`),
+   which is what `theorem3_3_moments` assumes: `μ (α − β)` is not integrable on
+   `P₁₊^ext` / `P₁₋^ext`. The paper's sign assumption (two-sided `μ`, decreasing `B`) is used
+   in its proof only through the sign of `μ` on these two regions, which is how the Lean
+   statement phrases it. Not proved in Lean (it is a reading of the printed text, from
+   `pdftotext` of the TAC 2022 PDF, p. 3498).
 
 ## 3. Layout
 
@@ -90,6 +102,8 @@ Both are proved in Lean, in `ButterflyCharacterization/Domain/Model/Butterfly.le
 │   │   │   ├── BranchForm.lean   # branch form of an operator: orbit, Def. 2.5, crossovers
 │   │   │   ├── IntegralPreisach.lean  # eq. (4); hysteresis operator; area by Fubini
 │   │   │   ├── Theorem33.lean    # branches of (4); area continuous in u_min/u_max; Thm. 3.3
+│   │   │   ├── Theorem33Moments.lean  # Thm. 3.3 from the sign of μ and unbounded moments
+│   │   │   ├── Theorem33Witness.lean  # a weight meeting every hypothesis of Thm. 3.3
 │   │   │   ├── Corollary34.lean  # Cor. 3.4 for (4); antisymmetric witness
 │   │   │   ├── Butterfly.lean    # Thm. 3.3 step, Cor. 3.4 (finite), findings, butterfly witness
 │   │   │   └── Multiloop.lean    # Thm. 4.7, multiloop witness
@@ -150,7 +164,7 @@ area, simulated  : 2.003617   (shoelace over the 2nd period)
 
 | Tier | Command | Result |
 |---|---|---|
-| unit | `lake build Tests` | axiom audit: **459 declarations in 21 modules, all standard**; 14 statements pinned; 4 non-vacuity checks; 5 service outputs pinned |
+| unit | `lake build Tests` | axiom audit: **499 declarations in 23 modules, all standard**; 16 statements pinned; 4 non-vacuity checks; 5 service outputs pinned |
 | component | `lake exe run_tests` | 4/4 PASS |
 | live | `lake exe run_tests` | 8/8 PASS (CLI output and exit codes) |
 | e2e | `lake exe run_tests` | 10/10 PASS: the Float formula equals the Lean-proved area in 4 cases; simulated error falls from 100 to 1000 samples (e.g. two-relay 0.016048 → 0.002728) |
@@ -164,9 +178,8 @@ module by construction.
 
 ## 6. Known gaps
 
-* Thm. 3.3: the step from the sign of `μ` and (5)–(6) to the two area limits is not
-  formalized (the limits are hypotheses). Interfaces `𝓘` are represented by the initial
-  states `r₀` only.
+* Thm. 3.3 uses the two-dimensional moment conditions of its proof, not the printed (5)–(6)
+  (§2, finding 3). Interfaces `𝓘` are represented by the initial states `r₀` only.
 * Lemma 4.4 and Thm. 4.7 are proved for finite ensembles only.
 * Inputs are `C¹` (paper: absolutely continuous).
 * The `Float` simulation is not proved correct; the e2e tier compares it with the proved values.

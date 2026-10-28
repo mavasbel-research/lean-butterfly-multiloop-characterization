@@ -10,10 +10,8 @@ import ButterflyCharacterization.Domain.Model.CosineInput
   on `u_max` and on `u_min` (dominated convergence; the lines `α = λ`, `β = λ` are null);
 * `theorem3_3`: if the area of `[β₁, α₁]` can be pushed to `+∞` by raising `u_max` and to
   `−∞` by lowering `u_min`, and every input range `[m, M] ⊇ [β₁, α₁]` gives a non-degenerate
-  loop, then `P` is a butterfly hysteresis operator.
-
-The paper derives the two limits from the sign of μ and the moment conditions (5)–(6); that
-derivation is not formalized here, so the limits are hypotheses of `theorem3_3`.
+  loop, then `P` is a butterfly hysteresis operator (`Theorem33Moments.lean` derives the two
+  limits from the sign of `μ` and (5)–(6)).
 -/
 
 open Set MeasureTheory Filter Topology
@@ -253,34 +251,59 @@ theorem cosine_loop {m M : ℝ} (h : m < M) {υ : ℝ} (hυ : υ ∈ Icc m M)
   refine ⟨P.isHysteresisLoop hT (by rw [em, eM]; exact hυ) (by rw [em, eM]; exact hΩ), ?_⟩
   rw [P.area_of_late hT, em, eM]
 
-/-- **Theorem 3.3** (Preisach operator (4)). Let `β₁ < α₁`. Suppose raising `u_max` drives the
-loop area of `[β₁, u_max]` to `+∞`, lowering `u_min` drives that of `[u_min, α₁]` to `−∞`
-(the role of (5)–(6) and the two-sided sign in the paper's proof), and every input range containing `[β₁, α₁]` has a level `υ` with
-`∬_{Ω_υ} μ ≠ 0` (Definition 2.5's two-point condition). Then `P` is a butterfly hysteresis
-operator. -/
+/-- A zero-area loop over `[m, M] ⊇ [β₁, α₁]` makes `P` a butterfly operator. -/
+theorem butterfly_of_zero {β₁ α₁ m M : ℝ} (h₁ : β₁ < α₁) (hm : m ≤ β₁) (hM : α₁ ≤ M)
+    (hgap : ∀ m M, m ≤ β₁ → α₁ ≤ M → ∃ υ ∈ Icc m M, P.omegaWeight m M υ ≠ 0)
+    (h0 : P.areaOf m M = 0) : IsButterflyOperator P.output := by
+  obtain ⟨υ, hυ, hΩ⟩ := hgap m M hm hM
+  obtain ⟨hl, harea⟩ := P.cosine_loop (by linarith) hυ hΩ
+  exact ⟨P.output_hysteresis, _, _, hl, harea.trans h0⟩
+
+/-- The intermediate-value step of the proof of Theorem 3.3: if the loop areas of
+`[m₀, α₁]` and `[β₁, M₀]` have opposite signs, some loop between them has zero area. -/
+theorem theorem3_3_of_signs {β₁ α₁ m₀ M₀ : ℝ} (h₁ : β₁ < α₁) (hm₀ : m₀ ≤ β₁) (hM₀ : α₁ ≤ M₀)
+    (hsign : P.areaOf m₀ α₁ * P.areaOf β₁ M₀ ≤ 0)
+    (hgap : ∀ m M, m ≤ β₁ → α₁ ≤ M → ∃ υ ∈ Icc m M, P.omegaWeight m M υ ≠ 0) :
+    IsButterflyOperator P.output := by
+  set a := P.areaOf m₀ α₁
+  set b := P.areaOf β₁ M₀
+  set c := P.areaOf β₁ α₁
+  have hcases : (0 : ℝ) ∈ uIcc c b ∨ (0 : ℝ) ∈ uIcc a c := by
+    simp only [mem_uIcc]
+    rcases le_total c 0 with hc | hc <;> rcases le_total b 0 with hb | hb
+    · rcases hb.lt_or_eq with hb | hb
+      · have ha : 0 ≤ a := by nlinarith
+        exact Or.inr (Or.inr ⟨hc, ha⟩)
+      · exact Or.inl (Or.inl ⟨hc, hb.ge⟩)
+    · exact Or.inl (Or.inl ⟨hc, hb⟩)
+    · exact Or.inl (Or.inr ⟨hb, hc⟩)
+    · rcases hb.lt_or_eq with hb | hb
+      · have ha : a ≤ 0 := by nlinarith
+        exact Or.inr (Or.inl ⟨ha, hc⟩)
+      · exact Or.inl (Or.inr ⟨hb.ge, hc⟩)
+  rcases hcases with h0 | h0
+  · obtain ⟨M, hM, hz⟩ := intermediate_value_uIcc
+      (P.continuous_areaOf_right β₁).continuousOn h0
+    rw [uIcc_of_le hM₀] at hM
+    exact P.butterfly_of_zero h₁ le_rfl hM.1 hgap hz
+  · obtain ⟨m, hm, hz⟩ := intermediate_value_uIcc
+      (P.continuous_areaOf_left α₁).continuousOn h0
+    rw [uIcc_of_le hm₀] at hm
+    exact P.butterfly_of_zero h₁ hm.2 le_rfl hgap hz
+
+/-- **Theorem 3.3** (Preisach operator (4)), from the two area limits. Let `β₁ < α₁`. If
+raising `u_max` drives the loop area of `[β₁, u_max]` to `+∞`, lowering `u_min` drives that of
+`[u_min, α₁]` to `−∞`, and every input range containing `[β₁, α₁]` has a level `υ` with
+`∬_{Ω_υ} μ ≠ 0` (Definition 2.5's two-point condition), then `P` is a butterfly hysteresis
+operator. `theorem3_3_moments` derives the limits from the sign of `μ` and (5)–(6). -/
 theorem theorem3_3 {β₁ α₁ : ℝ} (h₁ : β₁ < α₁)
     (hup : Tendsto (fun M => P.areaOf β₁ M) atTop atTop)
     (hdown : Tendsto (fun m => P.areaOf m α₁) atBot atBot)
     (hgap : ∀ m M, m ≤ β₁ → α₁ ≤ M → ∃ υ ∈ Icc m M, P.omegaWeight m M υ ≠ 0) :
     IsButterflyOperator P.output := by
-  rcases le_or_gt (P.areaOf β₁ α₁) 0 with hA | hA
-  · obtain ⟨b, hb⟩ := (tendsto_atTop.mp hup 0).exists_forall_of_atTop
-    have hc : α₁ ≤ max b α₁ := le_max_right _ _
-    obtain ⟨M, ⟨hM1, -⟩, hM⟩ := intermediate_value_Icc hc
-      (P.continuous_areaOf_right β₁).continuousOn ⟨hA, hb _ (le_max_left _ _)⟩
-    have hlt : β₁ < M := h₁.trans_le hM1
-    obtain ⟨υ, hυ, hΩ⟩ := hgap β₁ M le_rfl hM1
-    obtain ⟨hl, harea⟩ := P.cosine_loop hlt hυ hΩ
-    exact ⟨P.output_hysteresis, _, _, hl, harea.trans hM⟩
-  · obtain ⟨b, hb⟩ := (tendsto_atBot.mp hdown 0).exists_forall_of_atBot
-    have hc : min b β₁ ≤ β₁ := min_le_right _ _
-    have hβ : P.areaOf β₁ α₁ ∈ Icc (P.areaOf (min b β₁) α₁) (P.areaOf β₁ α₁) := ⟨(hb _ (min_le_left _ _)).trans hA.le, le_rfl⟩
-    obtain ⟨m, ⟨-, hm1⟩, hm⟩ := intermediate_value_Icc hc
-      (P.continuous_areaOf_left α₁).continuousOn ⟨hb _ (min_le_left _ _), hA.le⟩
-    have hlt : m < α₁ := hm1.trans_lt h₁
-    obtain ⟨υ, hυ, hΩ⟩ := hgap m α₁ hm1 le_rfl
-    obtain ⟨hl, harea⟩ := P.cosine_loop hlt hυ hΩ
-    exact ⟨P.output_hysteresis, _, _, hl, harea.trans hm⟩
+  obtain ⟨M₀, hM₀, hα⟩ := ((tendsto_atTop.mp hup 0).and (eventually_ge_atTop α₁)).exists
+  obtain ⟨m₀, hm₀, hβ⟩ := ((tendsto_atBot.mp hdown 0).and (eventually_le_atBot β₁)).exists
+  exact P.theorem3_3_of_signs h₁ hβ hα (by nlinarith) hgap
 
 end IntegralPreisach
 

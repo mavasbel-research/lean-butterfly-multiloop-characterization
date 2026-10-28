@@ -108,6 +108,19 @@ info: IntegralPreisach.theorem3_3 : ∀ (P : IntegralPreisach) {β₁ α₁ : �
 #check @IntegralPreisach.theorem3_3
 
 /--
+info: IntegralPreisach.theorem3_3_moments : ∀ (P : IntegralPreisach) {β₁ α₁ s : ℝ},
+  β₁ < α₁ →
+    s ≠ 0 →
+      (∀ (p : ℝ × ℝ), β₁ < p.2 → α₁ ≤ p.1 → 0 ≤ s * P.μ p) →
+        (∀ (p : ℝ × ℝ), p.2 ≤ β₁ → p.1 < α₁ → s * P.μ p ≤ 0) →
+          ¬MeasureTheory.IntegrableOn (fun p ↦ P.μ p * (p.1 - p.2)) {p | β₁ < p.2 ∧ α₁ ≤ p.1} MeasureTheory.volume →
+            ¬MeasureTheory.IntegrableOn (fun p ↦ P.μ p * (p.1 - p.2)) {p | p.2 ≤ β₁ ∧ p.1 < α₁} MeasureTheory.volume →
+              (∀ (m M : ℝ), m ≤ β₁ → α₁ ≤ M → ∃ υ ∈ Set.Icc m M, P.omegaWeight m M υ ≠ 0) → IsButterflyOperator P.output
+-/
+#guard_msgs in
+#check @IntegralPreisach.theorem3_3_moments
+
+/--
 info: IntegralPreisach.corollary3_4 : ∀ (P : IntegralPreisach) (κ : ℝ),
   (∀ (p : ℝ × ℝ), P.μ (ButterflyCharacterization.Domain.Model.refl κ p) = -P.μ p) →
     ∀ {I : SimplePeriodicInput} {tp : ℝ}, IsHysteresisLoop P.output I tp → I.umin + I.umax = κ → loopArea P.output I = 0
@@ -118,6 +131,10 @@ info: IntegralPreisach.corollary3_4 : ∀ (P : IntegralPreisach) (κ : ℝ),
 /-- info: ButterflyCharacterization.Domain.Model.antisymWitness_isButterfly : IsButterflyOperator antisymWitness.output -/
 #guard_msgs in
 #check antisymWitness_isButterfly
+
+/-- info: ButterflyCharacterization.Domain.Model.butterflyWitness_isButterfly : IsButterflyOperator butterflyWitness.output -/
+#guard_msgs in
+#check butterflyWitness_isButterfly
 
 /-! ### Non-vacuity -/
 
