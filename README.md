@@ -6,6 +6,14 @@ A Lean 4 / Mathlib formalization of
 > and Multiloop Hysteresis Behavior", *IEEE Transactions on Automatic Control*, vol. 67,
 > no. 7, pp. 3494–3506, July 2022. DOI: [10.1109/TAC.2021.3109533](https://doi.org/10.1109/TAC.2021.3109533)
 
+The theorem statements originate in B. Jayawardhana et al., "Modeling and analysis of butterfly
+loops via Preisach operators and its application in a piezoelectric material", *57th IEEE
+Conference on Decision and Control*, pp. 6894–6899, 2018, DOI:
+[10.1109/CDC.2018.8618659](https://doi.org/10.1109/CDC.2018.8618659). That CDC paper labels
+them Propositions 3.1 and 3.2, omits their proofs, and refers to the then-in-preparation work
+that became the TAC article. The final author's CDC version used for this audit is
+`/home/mavasbel/Documents/Research/researchgate/PDFs/generated_6235767.pdf`.
+
 * Toolchain: `leanprover/lean4:v4.35.0` (`/home/mavasbel/Dev/repos/research/lean-butterfly-multiloop-characterization/lean-toolchain`)
 * Mathlib: `v4.35.0` (`/home/mavasbel/Dev/repos/research/lean-butterfly-multiloop-characterization/lake-manifest.json`)
 * Plan of this version: `/home/mavasbel/Dev/docs/plans/2026-10-26-23-42-phase-3-faithful-rework-butterfly-multiloop-plan.md`
@@ -43,10 +51,10 @@ integral operator (4) (`IntegralPreisach`: Lebesgue-integrable weight `μ` vanis
 | §III: μ ≥ 0 ⇒ no clockwise loop; μ ≤ 0 ⇒ no counterclockwise loop | `not_clockwise_of_nonneg`, `not_counterclockwise_of_nonpos` | proved, finite form |
 | eq. (4) is a hysteresis operator | `IntegralPreisach.output_hysteresis` | proved |
 | area of a loop of (4): `A = ∬ μ(α,β)·2(α−β)` over `u_min < β, α < u_max` | `IntegralPreisach.area` (Fubini + Lemma 3.1) | proved, on any hysteresis loop |
-| **Thm. 3.3** | `IntegralPreisach.theorem3_3_moments` (`Theorem33Moments.lean`) | **proved**, with the hypotheses the paper's proof uses (see §2, finding 3): `s·μ ≥ 0` on `P₁₊^ext = {β > β₁, α ≥ α₁}`, `s·μ ≤ 0` on `P₁₋^ext = {β ≤ β₁, α < α₁}`, `μ(α − β)` not integrable on either region, and a non-degenerate loop for every input range `⊇ [β₁, α₁]`. Steps: monotone convergence gives `h(λ) → ∞` on both sides; the area is continuous in `u_max`, `u_min` (dominated convergence); the IVT gives the zero-area loop |
+| **Thm. 3.3** (CDC Prop. 3.1) | `IntegralPreisach.theorem3_3_moments` (`Theorem33Moments.lean`) | **proved**, with the explicit two-dimensional hypotheses used by the TAC proof (see §2, finding 3): `s·μ ≥ 0` on `P₁₊^ext = {β > β₁, α ≥ α₁}`, `s·μ ≤ 0` on `P₁₋^ext = {β ≤ β₁, α < α₁}`, `μ(α − β)` not integrable on either region, and a non-degenerate loop for every input range `⊇ [β₁, α₁]`. Steps: monotone convergence gives `h(λ) → ∞` on both sides; the area is continuous in `u_max`, `u_min` (dominated convergence); the IVT gives the zero-area loop |
 | Thm. 3.3, intermediate forms | `theorem3_3_of_signs` (areas of opposite sign), `theorem3_3` (the two limits); finite: `theorem3_3_step_max/min` | proved |
 | Thm. 3.3 is satisfiable | `butterflyWitness_isButterfly` (`Theorem33Witness.lean`): `μ = f₊ − f₊∘refl₁ + 𝟙_{Q₀}`, `f₊ = α⁻²𝟙{α>1}𝟙{1/2<β<1}` | every hypothesis of `theorem3_3_moments` is proved for it (integrable `μ` with unbounded first moments) |
-| **Cor. 3.4** | `IntegralPreisach.corollary3_4` (integral), `FinitePreisach.corollary3_4` (finite) | **proved**, with the reflection about `B` and the input condition `u_min + u_max = κ` (see §2) |
+| **Cor. 3.4** (CDC Prop. 3.2) | `IntegralPreisach.corollary3_4` (integral), `FinitePreisach.corollary3_4` (finite) | **proved**, with the reflection about `B` and the input condition `u_min + u_max = κ` (see §2) |
 | Cor. 3.4 is satisfiable | `antisymWitness_isButterfly`: `μ = 𝟙_{(0,1)×(−1,0)} − 𝟙_{(1,2)×(0,1)}` | an integral operator that is a butterfly operator |
 | **Lemma 4.4** | `FinitePreisach.lemma4_4` | **proved, finite form**, on any hysteresis loop; `Ω_υ` = switching relays with `βᵢ ≤ υ ≤ αᵢ` (closed bands, see `Branches.lean`) |
 | **Thm. 4.7** | `FinitePreisach.theorem4_7` | **proved, finite form**, hypotheses on relays and weights only, as in the paper |
@@ -56,29 +64,28 @@ integral operator (4) (`IntegralPreisach`: Lebesgue-integrable weight `μ` vanis
 
 ## 2. Findings about the paper's text
 
-Findings 1–2 are proved in Lean, in `ButterflyCharacterization/Domain/Model/Butterfly.lean`; finding 3 is a reading of the printed text.
+Findings 1–2 are proved in Lean, in
+`/home/mavasbel/Dev/repos/research/lean-butterfly-multiloop-characterization/ButterflyCharacterization/Domain/Model/Butterfly.lean`;
+finding 3 is a source-audit finding, not a Lean theorem.
 
-1. **Cor. 3.4 antisymmetry.** The paper writes "μ antisymmetric with respect to B, i.e.,
-   μ(α, β) = −μ(−α, −β)". For `(α, β)` in the Preisach plane (`α > β`), `(−α, −β)` has
-   `−α < −β`, so it is not in the plane; and the map ignores `κ`. The reflection about
-   `B = {α = −β + κ}` that maps the plane to itself is `(α, β) ↦ (κ − β, κ − α)`; the Lean
-   statement uses it.
-2. **Cor. 3.4 input.** The paper says "it suffices to have a periodic input signal u whose
+1. **CDC Prop. 3.2 / TAC Cor. 3.4 antisymmetry.** Both papers write "μ antisymmetric with
+   respect to B, i.e., μ(α, β) = −μ(−α, −β)". For `(α, β)` in the Preisach plane (`α > β`),
+   `(−α, −β)` has `−α < −β`, so it is not in the plane; and the map ignores `κ`. The reflection
+   about `B = {α = −β + κ}` that maps the plane to itself is
+   `(α, β) ↦ (κ − β, κ − α)`; the Lean statement uses it.
+2. **TAC Cor. 3.4 input.** The TAC paper says "it suffices to have a periodic input signal u whose
    maximum and minimum satisfy u_max = −u_min + 2κ". `corollary3_4_paper_input_counterexample`:
    relays `(1, −1)` with weight `1` and `(2, 0)` with weight `−1` are antisymmetric about
    `α + β = 1` (`κ = 1`); the input `u_min = −1/2`, `u_max = 5/2` satisfies the paper's rule,
    and the loop area is `−4`. With `u_min + u_max = κ` the area is `0`
    (`corollary3_4_symmetric_input`, `FinitePreisach.corollary3_4`).
-3. **Thm. 3.3 moment conditions.** The paper states (5) `∫_r^∞ μ(α, β) β dβ = ∞` and
-   (6) `∫_{−∞}^r μ(α, β) α dα = ∞` "for all `(α, β) ∈ P`". Read literally, (5) integrates
-   `β` beyond `α`, where `μ = 0` (the plane is `α > β`), so it cannot hold for a weight that
-   is integrable on bounded sets. The proof only uses that
-   `h(λ) = 2∬_{P₁₊^{ext,λ}} |μ| (α − β) → ∞` as `λ → ∞` (and the mirror on `P₁₋^{ext,λ}`),
-   which is what `theorem3_3_moments` assumes: `μ (α − β)` is not integrable on
-   `P₁₊^ext` / `P₁₋^ext`. The paper's sign assumption (two-sided `μ`, decreasing `B`) is used
-   in its proof only through the sign of `μ` on these two regions, which is how the Lean
-   statement phrases it. Not proved in Lean (it is a reading of the printed text, from
-   `pdftotext` of the TAC 2022 PDF, p. 3498).
+3. **CDC Prop. 3.1 / TAC Thm. 3.3 moment conditions.** Both papers state (5)
+   `∫_r^∞ μ(α, β) β dβ = ∞` and (6) `∫_{−∞}^r μ(α, β) α dα = ∞` "for all `(α, β) ∈ P`", but
+   neither defines `r`. The CDC paper omits the proof. The TAC proof instead uses divergence of
+   `h(λ) = 2∬_{P₁₊^{ext,λ}} |μ| (α − β)` as `λ → ∞`, and the corresponding left-region limit.
+   `theorem3_3_moments` formalizes these explicit two-dimensional conditions as non-integrability
+   of `μ (α − β)` on `P₁₊^ext` and `P₁₋^ext`; it does not claim to define the printed `r`. This
+   is a source-audit finding, based on CDC pp. 5–6 and TAC p. 3498.
 
 ## 3. Layout
 
@@ -178,9 +185,11 @@ module by construction.
 
 ## 6. Known gaps
 
-* Thm. 3.3 uses the two-dimensional moment conditions of its proof, not the printed (5)–(6)
-  (§2, finding 3). Interfaces `𝓘` are represented by the initial states `r₀` only.
-* Lemma 4.4 and Thm. 4.7 are proved for finite ensembles only.
+* Thm. 3.3 uses the two-dimensional moment conditions explicit in the TAC proof, not an
+  interpretation of the undefined printed `r` in (5)–(6) (§2, finding 3). Interfaces `𝓘` are
+  represented by the initial states `r₀` only.
+* Lemma 4.4 and Thm. 4.7 are proved for finite ensembles only; their integral forms are the next
+  Phase 3 deliverable.
 * Inputs are `C¹` (paper: absolutely continuous).
 * The `Float` simulation is not proved correct; the e2e tier compares it with the proved values.
 * Cor. 5.1 is not formalized.
