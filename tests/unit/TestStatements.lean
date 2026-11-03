@@ -98,6 +98,28 @@ info: @IntegralPreisach.area : ∀ {I : SimplePeriodicInput} (P : IntegralPreisa
 #check @IntegralPreisach.area
 
 /--
+info: IntegralPreisach.lemma4_4 : ∀ (P : IntegralPreisach) (I : SimplePeriodicInput) {tp : ℝ},
+  IsHysteresisLoop P.output I tp →
+    ∀ {υ γ : ℝ},
+      IsCrossoverPoint I (P.output I.u) (υ, γ) ↔
+        υ ∈ Set.Icc I.umin I.umax ∧ γ = P.yUp I.umin I.umax υ ∧ P.omegaWeight I.umin I.umax υ = 0
+-/
+#guard_msgs in
+#check @IntegralPreisach.lemma4_4
+
+/--
+info: IntegralPreisach.theorem4_7 : ∀ (P : IntegralPreisach) {β₀ aLo a₁ aHi α₀ : ℝ},
+  β₀ < aLo →
+    aLo < a₁ →
+      a₁ < aHi →
+        aHi < α₀ →
+          P.omegaWeight β₀ α₀ a₁ = 0 →
+            P.omegaWeight β₀ α₀ aLo ≠ 0 → P.omegaWeight β₀ α₀ aHi ≠ 0 → IsMultiloopOperator P.output
+-/
+#guard_msgs in
+#check @IntegralPreisach.theorem4_7
+
+/--
 info: IntegralPreisach.theorem3_3 : ∀ (P : IntegralPreisach) {β₁ α₁ : ℝ},
   β₁ < α₁ →
     Filter.Tendsto (fun M ↦ P.areaOf β₁ M) Filter.atTop Filter.atTop →
@@ -131,6 +153,10 @@ info: IntegralPreisach.corollary3_4 : ∀ (P : IntegralPreisach) (κ : ℝ),
 /-- info: ButterflyCharacterization.Domain.Model.antisymWitness_isButterfly : IsButterflyOperator antisymWitness.output -/
 #guard_msgs in
 #check antisymWitness_isButterfly
+
+/-- info: ButterflyCharacterization.Domain.Model.antisymWitness_isMultiloop : IsMultiloopOperator antisymWitness.output -/
+#guard_msgs in
+#check antisymWitness_isMultiloop
 
 /-- info: ButterflyCharacterization.Domain.Model.butterflyWitness_isButterfly : IsButterflyOperator butterflyWitness.output -/
 #guard_msgs in

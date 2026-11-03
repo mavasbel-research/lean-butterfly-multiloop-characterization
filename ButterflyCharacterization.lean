@@ -16,6 +16,8 @@ import ButterflyCharacterization.Domain.Model.Theorem33
 import ButterflyCharacterization.Domain.Model.Theorem33Moments
 import ButterflyCharacterization.Domain.Model.Corollary34
 import ButterflyCharacterization.Domain.Model.Theorem33Witness
+import ButterflyCharacterization.Domain.Model.IntegralMultiloop
+import ButterflyCharacterization.Domain.Model.IntegralMultiloopWitness
 import ButterflyCharacterization.Domain.Services.LoopAnalysisService
 import ButterflyCharacterization.Adapters.Outbound.BuiltinEnsembles
 import ButterflyCharacterization.Adapters.Outbound.ConsoleTelemetry

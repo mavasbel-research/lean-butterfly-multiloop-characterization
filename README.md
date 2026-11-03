@@ -56,8 +56,8 @@ integral operator (4) (`IntegralPreisach`: Lebesgue-integrable weight `μ` vanis
 | Thm. 3.3 is satisfiable | `butterflyWitness_isButterfly` (`Theorem33Witness.lean`): `μ = f₊ − f₊∘refl₁ + 𝟙_{Q₀}`, `f₊ = α⁻²𝟙{α>1}𝟙{1/2<β<1}` | every hypothesis of `theorem3_3_moments` is proved for it (integrable `μ` with unbounded first moments) |
 | **Cor. 3.4** (CDC Prop. 3.2) | `IntegralPreisach.corollary3_4` (integral), `FinitePreisach.corollary3_4` (finite) | **proved**, with the reflection about `B` and the input condition `u_min + u_max = κ` (see §2) |
 | Cor. 3.4 is satisfiable | `antisymWitness_isButterfly`: `μ = 𝟙_{(0,1)×(−1,0)} − 𝟙_{(1,2)×(0,1)}` | an integral operator that is a butterfly operator |
-| **Lemma 4.4** | `FinitePreisach.lemma4_4` | **proved, finite form**, on any hysteresis loop; `Ω_υ` = switching relays with `βᵢ ≤ υ ≤ αᵢ` (closed bands, see `Branches.lean`) |
-| **Thm. 4.7** | `FinitePreisach.theorem4_7` | **proved, finite form**, hypotheses on relays and weights only, as in the paper |
+| **Lemma 4.4** | `FinitePreisach.lemma4_4`, `IntegralPreisach.lemma4_4` | **proved** for finite ensembles and operator (4): on any hysteresis loop, `(υ,γ)` is a crossover iff `γ = y⁺(υ)` and the finite sum / integral over the switching band `Ω_υ` is zero. The finite form uses closed bands (`βᵢ ≤ υ ≤ αᵢ`); the integral form uses `Ω_υ = {u_min < β, α < u_max, β ≤ υ ≤ α}` |
+| **Thm. 4.7** | `FinitePreisach.theorem4_7`, `IntegralPreisach.theorem4_7` | **proved** for finite ensembles and operator (4): one zero switching-band weight between two nonzero neighboring values yields a multiloop operator; the integral hypotheses are demonstrated by `antisymWitness_isMultiloop` |
 | every relay over one period | `relay_rising`, `relay_falling`, `relay_periodic` (`RelayPeriod.lean`) | proved for switching, down-only, up-only and frozen relays |
 | Definitions satisfiable | `twoRelay_isButterfly`, `twoRelay_isMultiloop` | a 2-relay operator that is both |
 | Cor. 5.1 (Lur'e) | — | not formalized (needs LaSalle's invariance principle) |
@@ -113,7 +113,9 @@ finding 3 is a source-audit finding, not a Lean theorem.
 │   │   │   ├── Theorem33Witness.lean  # a weight meeting every hypothesis of Thm. 3.3
 │   │   │   ├── Corollary34.lean  # Cor. 3.4 for (4); antisymmetric witness
 │   │   │   ├── Butterfly.lean    # Thm. 3.3 step, Cor. 3.4 (finite), findings, butterfly witness
-│   │   │   └── Multiloop.lean    # Thm. 4.7, multiloop witness
+│   │   │   ├── Multiloop.lean    # finite Lemma 4.4 / Thm. 4.7, multiloop witness
+│   │   │   ├── IntegralMultiloop.lean  # integral Lemma 4.4 / Thm. 4.7
+│   │   │   └── IntegralMultiloopWitness.lean  # satisfiable integral Thm. 4.7 hypotheses
 │   │   └── Services/
 │   │       └── LoopAnalysisService.lean   # Float simulation + closed forms; use case runAnalysis
 │   ├── Adapters/
@@ -167,11 +169,11 @@ area, formula    : 2.000000   (2 Σ_switching w (α − β), FinitePreisach.area
 area, simulated  : 2.003617   (shoelace over the 2nd period)
 ```
 
-## 5. Verification (measured 2026-10-27)
+## 5. Verification (measured 2026-11-02)
 
 | Tier | Command | Result |
 |---|---|---|
-| unit | `lake build Tests` | axiom audit: **499 declarations in 23 modules, all standard**; 16 statements pinned; 4 non-vacuity checks; 5 service outputs pinned |
+| unit | `lake build Tests` | axiom audit: **515 declarations in 25 modules, all standard**; 19 statements pinned; 5 non-vacuity checks; 5 service outputs pinned |
 | component | `lake exe run_tests` | 4/4 PASS |
 | live | `lake exe run_tests` | 8/8 PASS (CLI output and exit codes) |
 | e2e | `lake exe run_tests` | 10/10 PASS: the Float formula equals the Lean-proved area in 4 cases; simulated error falls from 100 to 1000 samples (e.g. two-relay 0.016048 → 0.002728) |
@@ -179,6 +181,10 @@ area, simulated  : 2.003617   (shoelace over the 2nd period)
 Mutation checks run on 2026-10-27, then reverted: adding `theorem mutant : (1 : ℝ) = 2 := sorry`
 makes the axiom audit fail (`[(…mutant, [sorryAx])]`); changing the simulated relay to switch
 at `u ≥ α` makes `tests/unit/TestService.lean` fail.
+
+An additional mutation check ran on 2026-11-02, then reverted: changing the central hypothesis
+of `IntegralPreisach.theorem4_7` from `omegaWeight β₀ α₀ a₁ = 0` to `≠ 0` makes the theorem
+fail at the application of `theorem4_7_of_input`, whose required goal remains equality to zero.
 
 Lean has no line-coverage tool; the axiom audit's count covers every declaration of every
 module by construction.
@@ -188,8 +194,6 @@ module by construction.
 * Thm. 3.3 uses the two-dimensional moment conditions explicit in the TAC proof, not an
   interpretation of the undefined printed `r` in (5)–(6) (§2, finding 3). Interfaces `𝓘` are
   represented by the initial states `r₀` only.
-* Lemma 4.4 and Thm. 4.7 are proved for finite ensembles only; their integral forms are the next
-  Phase 3 deliverable.
 * Inputs are `C¹` (paper: absolutely continuous).
 * The `Float` simulation is not proved correct; the e2e tier compares it with the proved values.
 * Cor. 5.1 is not formalized.
