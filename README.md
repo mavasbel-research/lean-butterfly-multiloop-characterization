@@ -11,12 +11,10 @@ loops via Preisach operators and its application in a piezoelectric material", *
 Conference on Decision and Control*, pp. 6894–6899, 2018, DOI:
 [10.1109/CDC.2018.8618659](https://doi.org/10.1109/CDC.2018.8618659). That CDC paper labels
 them Propositions 3.1 and 3.2, omits their proofs, and refers to the then-in-preparation work
-that became the TAC article. The final author's CDC version used for this audit is
-`/home/mavasbel/Documents/Research/researchgate/PDFs/generated_6235767.pdf`.
+that became the TAC article.
 
-* Toolchain: `leanprover/lean4:v4.35.0` (`/home/mavasbel/Dev/repos/research/lean-butterfly-multiloop-characterization/lean-toolchain`)
-* Mathlib: `v4.35.0` (`/home/mavasbel/Dev/repos/research/lean-butterfly-multiloop-characterization/lake-manifest.json`)
-* Plan of this version: `/home/mavasbel/Dev/docs/plans/2026-10-26-23-42-phase-3-faithful-rework-butterfly-multiloop-plan.md`
+* Toolchain: `leanprover/lean4:v4.35.0` (`./lean-toolchain`)
+* Mathlib: `v4.35.0` (`./lake-manifest.json`)
 
 ## 1. What is proved
 
@@ -65,7 +63,7 @@ integral operator (4) (`IntegralPreisach`: Lebesgue-integrable weight `μ` vanis
 ## 2. Findings about the paper's text
 
 Findings 1–2 are proved in Lean, in
-`/home/mavasbel/Dev/repos/research/lean-butterfly-multiloop-characterization/ButterflyCharacterization/Domain/Model/Butterfly.lean`;
+`ButterflyCharacterization/Domain/Model/Butterfly.lean`;
 finding 3 is a source-audit finding, not a Lean theorem.
 
 1. **CDC Prop. 3.2 / TAC Cor. 3.4 antisymmetry.** Both papers write "μ antisymmetric with
@@ -90,7 +88,7 @@ finding 3 is a source-audit finding, not a Lean theorem.
 ## 3. Layout
 
 ```text
-/home/mavasbel/Dev/repos/research/lean-butterfly-multiloop-characterization
+.
 ├── ButterflyCharacterization.lean             # root: imports every module
 ├── ButterflyCharacterization/
 │   ├── Domain/
@@ -135,7 +133,6 @@ finding 3 is a source-audit finding, not a Lean theorem.
 ## 4. Commands
 
 ```bash
-cd /home/mavasbel/Dev/repos/research/lean-butterfly-multiloop-characterization
 lake exe cache get                      # Mathlib prebuilt files (once)
 lake build                              # all theorems
 lake build Tests                        # unit tier: axiom audit, pinned statements, service
