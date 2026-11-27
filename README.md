@@ -2,9 +2,9 @@
 
 Source: [mavasbel-research/lean-butterfly-multiloop-characterization](https://github.com/mavasbel-research/lean-butterfly-multiloop-characterization) · default branch `main`
 
-![language](https://img.shields.io/badge/language-Lean-MATLAB-blue) ![status](https://img.shields.io/badge/status-active-brightgreen)
+![status](https://img.shields.io/badge/status-active-brightgreen)
 
-> Lean 4 and Mathlib formalization of Butterfly and Multiloop Hysteresis Behavior (IEEE TAC 2022).
+> WIP for Lean 4 and Mathlib based formalization of Butterfly and Multiloop Hysteresis Behavior (IEEE TAC 2022).
 
 ## Features
 
